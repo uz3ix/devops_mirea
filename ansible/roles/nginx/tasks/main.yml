@@ -1,0 +1,30 @@
+---
+- name: Install the dedicated PR11 virtual host
+  ansible.builtin.template:
+    src: pr11.conf.j2
+    dest: /etc/nginx/sites-available/pr11-devops-ci-app
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Apply PR11 Nginx configuration
+
+- name: Enable the dedicated PR11 virtual host
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/pr11-devops-ci-app
+    dest: /etc/nginx/sites-enabled/pr11-devops-ci-app
+    state: link
+  notify: Apply PR11 Nginx configuration
+
+- name: Apply pending Nginx changes before checking the proxy
+  ansible.builtin.meta: flush_handlers
+
+- name: Check the application through the PR11 Nginx virtual host
+  ansible.builtin.uri:
+    url: http://127.0.0.1/health
+    headers:
+      Host: "{{ app_server_name }}"
+    use_proxy: false
+  register: proxy_health
+  failed_when: >-
+    (proxy_health.status | default(-1)) != 200 or
+    (proxy_health.json | default({})).get('status') != 'ok'

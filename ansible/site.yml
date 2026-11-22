@@ -1,0 +1,10 @@
+---
+- name: Deploy PR11 on the existing DevOps VM
+  hosts: vm
+  become: true
+
+  roles:
+    - base
+    - ssh
+    - app
+    - nginx

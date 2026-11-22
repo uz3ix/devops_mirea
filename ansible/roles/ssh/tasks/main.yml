@@ -1,0 +1,15 @@
+---
+- name: Check the account used to connect
+  ansible.builtin.command: whoami
+  become: false
+  changed_when: false
+  register: ssh_identity
+
+- name: Check the existing SSH configuration
+  ansible.builtin.command: /usr/sbin/sshd -t
+  changed_when: false
+
+- name: Confirm use of the existing automation user
+  ansible.builtin.assert:
+    that:
+      - ssh_identity.stdout == ansible_user
