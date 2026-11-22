@@ -1,0 +1,7 @@
+---
+app_image: "ghcr.io/uz3ix/devops-ci-app"
+app_tag: "3101f7885b66330f7d771c9ed80d1bf99017926f"
+app_container_name: "devops-ci-app"
+app_host_port: 5011
+app_internal_port: 5000
+app_server_name: "pr11.devops.local"

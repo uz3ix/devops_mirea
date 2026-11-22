@@ -1,0 +1,26 @@
+---
+- name: Pull the published image before touching the running container
+  community.docker.docker_image_pull:
+    name: "{{ app_image }}:{{ app_tag }}"
+    pull: not_present
+
+- name: Run the PR11 application on the loopback interface
+  community.docker.docker_container:
+    name: "{{ app_container_name }}"
+    image: "{{ app_image }}:{{ app_tag }}"
+    pull: never
+    state: started
+    restart_policy: unless-stopped
+    published_ports:
+      - "127.0.0.1:{{ app_host_port }}:{{ app_internal_port }}"
+
+- name: Wait for the application health response
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ app_host_port }}/health"
+    use_proxy: false
+  register: app_health
+  retries: 15
+  delay: 2
+  until:
+    - app_health.status | default(-1) == 200
+    - (app_health.json | default({})).get('status') == 'ok'

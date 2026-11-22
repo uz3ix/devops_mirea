@@ -1,0 +1,20 @@
+---
+- name: Confirm the expected VM platform
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['distribution'] == 'Ubuntu'
+      - ansible_facts['distribution_release'] == 'noble'
+      - ansible_facts['architecture'] == 'x86_64'
+
+- name: Check the existing Docker daemon
+  ansible.builtin.command: docker info
+  changed_when: false
+
+- name: Check the existing Nginx configuration
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Ensure the Python dependency for the Docker modules exists
+  ansible.builtin.apt:
+    name: python3-requests
+    state: present

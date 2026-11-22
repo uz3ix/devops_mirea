@@ -1,0 +1,11 @@
+---
+- name: Validate Nginx configuration before reload
+  listen: Apply PR11 Nginx configuration
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Reload the existing Nginx service
+  listen: Apply PR11 Nginx configuration
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded

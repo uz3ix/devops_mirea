@@ -1,0 +1,52 @@
+---
+- name: Verify PR11 deployment on the existing VM
+  hosts: vm
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check the effective SSH configuration
+      ansible.builtin.command: /usr/sbin/sshd -T
+      register: sshd_effective
+      changed_when: false
+
+    - name: Confirm SSH still listens on the expected port
+      ansible.builtin.assert:
+        that:
+          - "'port ' ~ (ansible_port | string) in sshd_effective.stdout_lines"
+
+    - name: Inspect the PR11 container
+      community.docker.docker_container_info:
+        name: "{{ app_container_name }}"
+      register: pr11_container
+
+    - name: Check the running container and image tag
+      ansible.builtin.assert:
+        that:
+          - pr11_container.exists
+          - pr11_container.container.State.Running
+          - pr11_container.container.Config.Image == (app_image ~ ':' ~ app_tag)
+          - pr11_container.container.Config.User not in ['', 'root', '0']
+          - >-
+            pr11_container.container.NetworkSettings.Ports[(app_internal_port | string) ~ '/tcp']
+            == [{'HostIp': '127.0.0.1', 'HostPort': (app_host_port | string)}]
+
+    - name: Check direct application health
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ app_host_port }}/health"
+        use_proxy: false
+      register: direct_health
+      failed_when: >-
+        (direct_health.status | default(-1)) != 200 or
+        (direct_health.json | default({})).get('status') != 'ok'
+
+    - name: Check health through the Nginx virtual host
+      ansible.builtin.uri:
+        url: http://127.0.0.1/health
+        headers:
+          Host: "{{ app_server_name }}"
+        use_proxy: false
+      register: nginx_health
+      failed_when: >-
+        (nginx_health.status | default(-1)) != 200 or
+        (nginx_health.json | default({})).get('status') != 'ok'
